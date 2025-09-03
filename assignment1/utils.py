@@ -79,6 +79,10 @@ def load_mnist_trainval():
     #       validation. Note: Don't shuffle here.                               #
     #############################################################################
 
+    split_data_index = int(len(data) * 0.8)
+    train_data, train_label = data[:split_data_index], label[:split_data_index]
+    val_data, val_label = data[split_data_index:], label[split_data_index:]
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -127,6 +131,16 @@ def generate_batched_data(data, label, batch_size=32, shuffle=False, seed=None):
     #    It's okay if the size of your last batch is smaller than the required  #
     #    batch size                                                             #
     #############################################################################
+    combined_list = list(zip(data, label))  #Ensuring that images and lables are together and shuffeled together
+    if shuffle:
+        random.shuffle(combined_list)
+
+    data, label = zip(*combined_list)
+    data, label = list(data), list(label)
+
+    # ------------------------
+    # Creating batches
+    # ------------------------
 
     #############################################################################
     #                              END OF YOUR CODE                             #
