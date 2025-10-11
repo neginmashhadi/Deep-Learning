@@ -78,6 +78,8 @@ def load_mnist_trainval():
     #       data. Use 80% of your data for training and 20% of your data for    #
     #       validation. Note: Don't shuffle here.                               #
     #############################################################################
+    print("DEBUG:", type(data), len(data) if data else None)
+    print("DEBUG:", type(label), len(label) if label else None)
 
     split_data_index = int(len(data) * 0.8)
     train_data, train_label = data[:split_data_index], label[:split_data_index]
@@ -141,6 +143,12 @@ def generate_batched_data(data, label, batch_size=32, shuffle=False, seed=None):
     # ------------------------
     # Creating batches
     # ------------------------
+    batched_data, batched_label = [], []
+    for i in range(0, len(data), batch_size):
+        batch_x = np.array(data[i:i + batch_size])
+        batch_y = np.array(label[i:i + batch_size])
+        batched_data.append(batch_x)
+        batched_label.append(batch_y)
 
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -235,7 +243,31 @@ def plot_curves(train_loss_history, train_acc_history, valid_loss_history, valid
     #    1) Plot learning curves of training and validation loss                #
     #    2) Plot learning curves of training and validation accuracy            #
     #############################################################################
+    # ------------------------
+    # Plotting Loss
+    # ------------------------
+    plt.figure()
+    plt.plot(train_loss_history, label='Training Loss')
+    plt.plot(valid_loss_history, label='Validation Loss')
+    plt.title('Training vs. Validation Loss')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.xlabel('Epochs')
+    plt.savefig('training_loss.png')
+    plt.close()
 
+    # ------------------------
+    # Plotting Curves
+    # ------------------------
+    plt.figure()
+    plt.plot(train_acc_history, label='Training Accuracy')
+    plt.plot(valid_acc_history, label='Validation Accuracy')
+    plt.title('Training vs. Validation Accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epochs')
+    plt.legend()
+    plt.savefig('training_accuracy.png')
+    plt.close()
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################

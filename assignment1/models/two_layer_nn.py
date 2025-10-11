@@ -85,7 +85,12 @@ class TwoLayerNet(_baseNetwork):
         #    2) Compute Cross-Entropy Loss and batch accuracy based on network      #
         #       outputs                                                             #
         #############################################################################
-
+        Z1 = X.dot(self.weights['W1']) + self.weights['b1']  #Z1=XW1+b1 Linear Transformation
+        O1 = self.sigmoid(Z1)                                #Activation (Sigmoid) O1=σ(Z1)=1 / 1 + e^-z1
+        Z2 = O1.dot(self.weights['W2']) + self.weights['b2'] #second linear Transformation: Z2=XW2+b2
+        prob = self.softmax(Z2)                      #Softmax probabilities
+        loss = self.cross_entropy_loss(prob, y)  #loss
+        accuracy = self.compute_accuracy(prob, y)
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -100,6 +105,23 @@ class TwoLayerNet(_baseNetwork):
         #          You may also want to implement the analytical derivative of      #
         #          the sigmoid function in self.sigmoid_dev first                   #
         #############################################################################
+
+        # Gradient at each weight
+        N = X.shape[0]
+        Y = np.zeros_like(prob)
+        Y[np.arange(N), y] = 1
+        gradient = (prob - Y) / N
+
+        if mode == 'train':
+            # Gradients for output layer
+            self.gradients['W2'] = O1.T.dot(gradient)
+            self.gradients['b2'] = np.sum(gradient, axis=0)
+            # Backprop into hidden layer
+            dO1 = gradient.dot(self.weights['W2'].T)
+            dZ1 = dO1 * self.sigmoid_dev(Z1)
+            # Gradients for first layer
+            self.gradients['W1'] = X.T.dot(dZ1)
+            self.gradients['b1'] = np.sum(dZ1, axis=0)
 
         #############################################################################
         #                              END OF YOUR CODE                             #
