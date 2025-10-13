@@ -57,7 +57,7 @@ class LSTM(nn.Module):
         ################################################################################
 
         # i_t: input gate
-
+        self.W_xi = nn.Parameter(torch.Tensor(input_size, hidden_size))
         # f_t: the forget gate
 
         # g_t: the cell gate
