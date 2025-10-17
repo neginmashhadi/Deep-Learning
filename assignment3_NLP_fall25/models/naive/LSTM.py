@@ -57,8 +57,18 @@ class LSTM(nn.Module):
         ################################################################################
 
         # i_t: input gate
-        self.W_xi = nn.Parameter(torch.Tensor(input_size, hidden_size))
+        self.weight_ii = nn.Parameter(torch.Tensor(input_size, hidden_size))
+        self.bias_ii = nn.Parameter(torch.Tensor(hidden_size))
+        self.weight_hi = nn.Parameter(torch.Tensor(hidden_size, hidden_size))
+        self.bias_hi = nn.Parameter(torch.Tensor(hidden_size))
+        # self.sigmoid_i = nn.Sigmoid()
+
         # f_t: the forget gate
+        self.weight_if =  nn.Parameter(torch.Tensor(input_size, hidden_size))
+        self.bias_if = nn.Parameter(torch.Tensor(hidden_size))
+        self.weight_hf = nn.Parameter(torch.Tensor(hidden_size, hidden_size))
+        self.bias_hf = nn.Parameter(torch.Tensor(hidden_size))
+        # self.sigmoid_f = nn.Sigmoid()
 
         # g_t: the cell gate
 
