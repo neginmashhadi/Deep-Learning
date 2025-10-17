@@ -70,6 +70,7 @@ class LSTM(nn.Module):
         self.bias_hf = nn.Parameter(torch.Tensor(hidden_size))
         # self.sigmoid_f = nn.Sigmoid()
 
+
         # g_t: the cell gate
 
         # o_t: the output gate
