@@ -26,9 +26,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-
 class Decoder(nn.Module):
-    """ The Decoder module of the Seq2Seq model 
+    """ The Decoder module of the Seq2Seq model
         You will need to complete the init function and the forward function.
     """
 
@@ -55,6 +54,38 @@ class Decoder(nn.Module):
         #           of context vector and input                                     #
         # NOTE: Use nn.RNN and nn.LSTM instead of the naive implementation          #
         #############################################################################
+
+        # ------------------------------------------
+        #  adding ann embedding layer
+        # ------------------------------------------
+        self.embedding = nn.Embedding(output_size, emb_size)
+
+        # ------------------------------------------
+        #  recurrent layer based on the  argument
+        # ------------------------------------------
+        if model_type == "RNN":
+            self.rnn = nn.RNN(self.emb_size, self.decoder_hidden_size, batch_first=True)
+        elif model_type == "LSTM":
+            self.rnn = nn.LSTM(self.emb_size, self.decoder_hidden_size, batch_first=True)
+        else:
+            raise ValueError("Invalid model type")
+
+        # ------------------------------------------
+        #  A single linear layer with a (log)softmax
+        # ------------------------------------------
+        self.out = nn.Linear(decoder_hidden_size, output_size)
+        self.log_softmax = nn.LogSoftmax(dim=-1)
+
+        # ------------------------------------------
+        #  dropout layer
+        # ------------------------------------------
+        self.dropout = nn.Dropout(dropout)
+
+        # ------------------------------------------
+        #  Attention is added
+        # ------------------------------------------
+        if self.attention:
+            self.attn = nn.Linear(emb_size + encoder_hidden_size, emb_size)
 
         #############################################################################
         #                              END OF YOUR CODE                             #
@@ -84,7 +115,21 @@ class Decoder(nn.Module):
         # some other similar function for your implementation.                      #
         #############################################################################
 
-        attention_prob = None   #remove this line when you start implementing your code
+        # attention_prob = None   #remove this line when you start implementing your code
+
+        q = hidden[-1]
+        K = encoder_outputs
+
+        cosine_similarity = (K * q[:, None, :]).sum(dim=2)
+
+        # per-sample norms
+        q_norm = q.norm(p=2, dim=1, keepdim=True)  # (N,1)
+        k_norm = K.norm(p=2, dim=2)  # (N,T)
+
+        # cosine scores and probs
+        score = cosine_similarity / (q_norm * k_norm + 1e-8)  # (N,T)
+        attention_prob = torch.softmax(score, dim=1).unsqueeze(1)  # (N,1,T)
+
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -123,7 +168,47 @@ class Decoder(nn.Module):
         #       containing both the hidden state and the cell state of the LSTM.    #
         #############################################################################
 
-        output, hidden = None, None     #remove this line when you start implementing your code
+        # ------------------------------------------
+        #  applying an embedding layer
+        # ------------------------------------------
+        embedding = self.embedding(input)
+        embedding = self.dropout(embedding)
+
+        x_input = embedding
+
+        # ------------------------------------------
+        # If attention is true
+        # ------------------------------------------
+        if self.attention:
+            if encoder_outputs is None:
+                raise ValueError("encoder_outputs required when attention=True")
+
+            if self.model_type == "RNN":
+                h_previous = hidden  # (1,N,H_dec)
+                attention_prob = self.compute_attention(h_previous, encoder_outputs)
+            elif self.model_type == "LSTM":
+                h_previous, c_previous = hidden  # each (1,N,H_dec)
+                attention_prob = self.compute_attention(h_previous, encoder_outputs)
+
+            context_vector = torch.bmm(attention_prob, encoder_outputs)  # (N,1,H_enc)
+            x_input = torch.cat((context_vector, x_input), dim=2)  # (N,1,E+H_enc)
+            x_input = self.attn(x_input)  # (N,1,E)
+
+            # recurrent step (runs whether attention is True or False)
+
+        if self.model_type == "RNN":
+            output_seq, hidden = self.rnn(x_input, hidden)  # output_seq: (N,1,H_dec)
+        elif self.model_type == "LSTM":
+            h_previous, c_previous = hidden
+            output_seq, (h_new, c_new) = self.rnn(x_input, (h_previous, c_previous))
+            hidden = (h_new, c_new)
+
+        # ------------------------------------------
+        # linear layer and log-softmax activation
+        # ------------------------------------------
+        step_out = output_seq[:, -1, :]  # (N,H_dec)
+        logits = self.out(step_out)  # (N,V)
+        output = self.log_softmax(logits)  # (N,V)
 
         #############################################################################
         #                              END OF YOUR CODE                             #
