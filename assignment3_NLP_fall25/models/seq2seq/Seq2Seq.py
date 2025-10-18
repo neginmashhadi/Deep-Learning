@@ -44,7 +44,8 @@ class Seq2Seq(nn.Module):
         #    that the models are on the same device (CPU/GPU). This should take no  #
         #    more than 2 lines of code.                                             #
         #############################################################################
-
+        self.encoder = encoder.to(device)
+        self.decoder = decoder.to(device)
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -74,8 +75,36 @@ class Seq2Seq(nn.Module):
         #          input at the next time step.                                     #
         #############################################################################
 
-        outputs = None      #remove this line when you start implementing your code
         # initially set outputs as a tensor of zeros with dimensions (batch_size, seq_len, decoder_output_size)
+        outputs = torch.zeros(batch_size, seq_len, self.decoder.output_size, device=self.device)
+
+        encoder_outputs, encoder_hidden = self.encoder(source)
+
+        #If LSTM
+        if isinstance(encoder_hidden, tuple):
+            hidden_t, context_t = encoder_hidden
+            hidden = (hidden_t.unsqueeze(0), context_t.unsqueeze(0))
+        #if RNN
+        else:
+            hidden = encoder_hidden.unsqueeze(0)
+        # -------------------------------------------------------------
+        # The first input for the decoder should be the <sos> token
+        # -------------------------------------------------------------
+        first_input = source[:, 0].unsqueeze(1)
+
+        # -------------------------------------------------------------
+        # Feed this first input and hidden state into the decoder
+        # -------------------------------------------------------------
+        for t in range(1, seq_len):
+            if self.decoder.attention:
+                output_t, hidden = self.decoder(first_input, hidden, encoder_outputs)
+            else:
+                output_t, hidden = self.decoder(first_input, hidden)
+
+            outputs[:, t, :] = output_t
+
+            top_idxs = output_t.argmax(dim=1)  # (B,)
+            first_input = top_idxs.unsqueeze(1)  # (B,1)
 
         #############################################################################
         #                              END OF YOUR CODE                             #
