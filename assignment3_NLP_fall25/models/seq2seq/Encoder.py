@@ -58,6 +58,33 @@ class Encoder(nn.Module):
         # NOTE: Use nn.RNN and nn.LSTM instead of the naive implementation          #
         #############################################################################
 
+        # ------------------------------------------
+        #  adding ann embedding layer
+        # ------------------------------------------
+        self.embedding = nn.Embedding(input_size, emb_size)
+
+        # ------------------------------------------
+        #  recurrent layer based on the  argument
+        # ------------------------------------------
+        if model_type == "RNN":
+            self.rnn = nn.RNN(emb_size, encoder_hidden_size, batch_first=True)
+        elif model_type == "LSTM":
+            self.rnn = nn.LSTM(emb_size, encoder_hidden_size, batch_first=True)
+        else:
+            raise ValueError("Invalid model type")
+
+        # ------------------------------------------
+        #  Linear layers with ReLU activation
+        # ------------------------------------------
+        self.fc_in = nn.Linear(encoder_hidden_size, encoder_hidden_size)
+        self.relu = nn.ReLU()
+        self.fc_out = nn.Linear(encoder_hidden_size, decoder_hidden_size)
+
+        # ------------------------------------------
+        #  dropout layer
+        # ------------------------------------------
+        self.dropout = nn.Dropout(dropout)
+
         #############################################################################
         #                              END OF YOUR CODE                             #
         #############################################################################
@@ -87,6 +114,25 @@ class Encoder(nn.Module):
         #############################################################################
 
         output, hidden = None, None     #remove this line when you start implementing your code
+        emb = self.embedding(input)
+        emb = self.dropout(emb)
+
+        if self.model_type == "RNN":
+            output, h_n = self.rnn(emb)
+            h_last = h_n[-1]
+            r = self.relu(self.fc_in(h_last))
+            h_proj = self.fc_out(r)
+            hidden = torch.tanh(h_proj)
+            return output, hidden
+
+        elif self.model_type == "LSTM":
+            output, (h_n, c_n) = self.rnn(emb)
+            h_last = h_n[-1]
+            c_last = c_n[-1]
+            r = self.relu(self.fc_in(h_last))
+            h_proj = self.fc_out(r)
+            h_proj = torch.tanh(h_proj)
+            hidden = (h_proj, c_last)
 
         #############################################################################
         #                              END OF YOUR CODE                             #
